@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Produto {
+  ProId          String          @id @default(uuid())
+  ProNome        String
+  ProDescricao   String
+  ProValor       Decimal         @db.Decimal(10, 2)
+  pedidoProdutos PedidoProduto[]
+  vendaProdutos  VendaProduto[]
+  estoque        Estoque[]
+}
+
+model Usuario {
+  UsuId           String       @id @default(uuid())
+  UsuNome         String
+  UsuEmail        String       @unique
+  UsuPasswordHash String
+  UsuDataCriacao  DateTime     @default(now())
+  Grupo           GrupoUsuario @default(USER)
+  pedidos         Pedido[]
+  vendas          Venda[]
+}
+
+model Venda {
+  VenId              String          @id @default(uuid())
+  UsuId              String
+  VenDataCriacao     DateTime        @default(now())
+  VenDataAtualizacao DateTime        @default(now()) @updatedAt
+  VenValor           Decimal         @db.Decimal(10, 2)
+  VenFormaPagamento  FormaPagamento?
+  VenStatus          VendaStatus     @default(ANDAMENTO)
+  usuario            Usuario         @relation(fields: [UsuId], references: [UsuId])
+  vendaProdutos      VendaProduto[]
+  estoque            Estoque[]
+}
+
+model VendaProduto {
+  VenpId            String  @id @default(uuid())
+  VenId             String
+  ProId             String
+  VenpQuantidade    Int     @default(1)
+  VenpPrecoUnitario Decimal @db.Decimal(10, 2)
+  VenpDesconto      Decimal @db.Decimal(10, 2)
+  produto           Produto @relation(fields: [ProId], references: [ProId])
+  venda             Venda   @relation(fields: [VenId], references: [VenId])
+
+  @@unique([VenId, ProId])
+}
+
+model Pedido {
+  PedId          String          @id @default(uuid())
+  UsuId          String
+  PedDataCriacao DateTime        @default(now())
+  PedDataEntrega DateTime?
+  PedStatus      PedidoStatus    @default(ANDAMENTO)
+  usuario        Usuario         @relation(fields: [UsuId], references: [UsuId])
+  pedidoProdutos PedidoProduto[]
+  estoque        Estoque[]
+}
+
+model PedidoProduto {
+  PedpId            String  @id @default(uuid())
+  PedId             String
+  ProId             String
+  PedpQtde          Int
+  PedpPrecoUnitario Decimal @db.Decimal(10, 2)
+  pedido            Pedido  @relation(fields: [PedId], references: [PedId])
+  produto           Produto @relation(fields: [ProId], references: [ProId])
+}
+
+model Estoque {
+  MovId         String        @id @default(uuid())
+  ProId         String
+  MovTipo       TipoMovimento
+  MovQuantidade Int
+  MovData       DateTime      @default(now())
+
+  VenId String?
+  PedId String?
+
+  produto Produto @relation(fields: [ProId], references: [ProId])
+  venda   Venda?  @relation(fields: [VenId], references: [VenId])
+  pedido  Pedido? @relation(fields: [PedId], references: [PedId])
+}
+
+enum TipoMovimento {
+  ENTRADA // compra, ajuste positivo
+  SAIDA // venda
+  ESTORNO // devolução
+  AJUSTE // inventário
+}
+
+enum FormaPagamento {
+  PIX
+  DINHEIRO
+  DEBITO
+  CREDITO
+}
+
+enum PedidoStatus {
+  CONCLUIDO
+  ANDAMENTO
+  CANCELADO
+}
+
+enum VendaStatus {
+  CONCLUIDO
+  CANCELADO
+  ESTORNADO
+  ANDAMENTO
+}
+
+enum GrupoUsuario {
+  USER
+  ADMIN
+}

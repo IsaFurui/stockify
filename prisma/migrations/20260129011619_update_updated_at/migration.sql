@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Venda" ALTER COLUMN "VenDataAtualizacao" SET DEFAULT CURRENT_TIMESTAMP;
